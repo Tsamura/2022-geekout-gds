@@ -19,23 +19,25 @@ export type TodoItemProps = {
 };
 
 function TodoItem(props: TodoItemProps) {
-  /* create state here */
+  const [done, setDone] = useState(props.done);
 
   const updateTodoItem = useCallback(async () => {
     await axios.put(`${CONFIG.API_ENDPOINT}/todos/${props.id}`, {
       id: props.id,
       description: props.description,
-      /* persist the state of the todo item */
+      done: done,
     });
-  }, [props.description, props.id]);
+  }, [props.description, props.id, done]);
 
   useEffect(() => {
-    /* mark the todo when done (as a dependency) changes */
+    console.log(props.description, 'is marked as ', done ? 'done' : 'undone');
+    updateTodoItem();
   }, [props.description, updateTodoItem]);
 
   return (<>
     <tr>
-      <td>{/* insert checkbox here */}</td>
+      
+      <td><input type="checkbox" checked={done} onChange={(event) => setDone(event.currentTarget.checked)}></input></td>
       <td width={'100%'}>{props.description}</td>
     </tr>
   </>
@@ -47,6 +49,10 @@ interface TodoProps {
 }
 
 function Todo(props: TodoProps) {
+
+  const [isRefresh, setIsRefresh] = useState(false);
+
+
   const [todoItems, setTodoItems] = useState<{ [id: string]: TodoItemProps }>({});
   const [newTodoDescription, setNewTodoDescription] = useState('');
 
@@ -55,9 +61,12 @@ function Todo(props: TodoProps) {
     setTodoItems(result.data);
   }, []);
 
-  const onRefreshClicked = useCallback(async () => {
-    console.log('Refresh button clicked');
-    /* refresh todos here */
+  const onRefreshClicked = useCallback( async () => {
+    setIsRefresh(true);
+    setTimeout(async () => {
+      await populateTodos();
+      setIsRefresh(false);
+    }, 400);
   }, [populateTodos]);
 
   useEffect(() => {
@@ -72,6 +81,7 @@ function Todo(props: TodoProps) {
     await axios.post(`/api/todos`, newTodo);
     await populateTodos();
     setNewTodoDescription('');
+    
   }
 
   return (
@@ -98,7 +108,9 @@ function Todo(props: TodoProps) {
                       <Button isPrimary isLoading={false}>Submit</Button>
                     </Col>
                     <Col>
-                      {/* insert button here */}
+                      <Button type="button" isOutline isLoading={isRefresh} onClick={onRefreshClicked}>
+                      <span className='sgds-icon sgds-icon-refresh' />
+                      </Button>
                     </Col>
                   </Row>
                 </div>
@@ -113,6 +125,7 @@ function Todo(props: TodoProps) {
                   Object.keys(todoItems).map((item) => (<TodoItem key={todoItems[item].id} {...todoItems[item]} />))
                 }
               </tbody>
+              
             </Table>
           </Section>
         </Col>
